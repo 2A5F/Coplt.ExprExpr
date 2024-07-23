@@ -835,108 +835,39 @@ public partial class Parser
         ulong r = 0;
         var last = str;
         {
-            re:
-            if (Vector512.IsHardwareAccelerated)
-            {
-                if (last.Length >= 32)
-                {
-                    var a = Vector512.LoadUnsafe(ref AsU16(last));
-                    var e = Vector512.Equals(a, Vector512.Create((ushort)'1'));
-                    e = Vector512.Shuffle(e, Vector512.Create(
-                        (ushort)31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-                        15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
-                    ));
-                    var s = e.ExtractMostSignificantBits();
-                    r <<= 32;
-                    r |= s;
-                    last = last[32..];
-                    goto re;
-                }
-            }
-            if (Vector256.IsHardwareAccelerated)
-            {
-                if (last.Length >= 16)
-                {
-                    var a = Vector256.LoadUnsafe(ref AsU16(last));
-                    var e = Vector256.Equals(a, Vector256.Create((ushort)'1'));
-                    e = Vector256.Shuffle(e, Vector256.Create(
-                        (ushort)15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
-                    ));
-                    var s = e.ExtractMostSignificantBits();
-                    r <<= 16;
-                    r |= s;
-                    last = last[16..];
-                    goto re;
-                }
-            }
-            if (Vector128.IsHardwareAccelerated)
-            {
-                if (last.Length >= 8)
-                {
-                    var a = Vector128.LoadUnsafe(ref AsU16(last));
-                    var e = Vector128.Equals(a, Vector128.Create((ushort)'1'));
-                    e = Vector128.Shuffle(e, Vector128.Create(
-                        (ushort)7, 6, 5, 4, 3, 2, 1, 0
-                    ));
-                    var s = e.ExtractMostSignificantBits();
-                    r <<= 8;
-                    r |= s;
-                    last = last[8..];
-                    goto re;
-                }
-            }
-            if (Vector64.IsHardwareAccelerated)
-            {
-                if (last.Length >= 4)
-                {
-                    var a = Vector64.LoadUnsafe(ref AsU16(last));
-                    var e = Vector64.Equals(a, Vector64.Create((ushort)'1'));
-                    e = Vector64.Shuffle(e, Vector64.Create(
-                        (ushort)3, 2, 1, 0
-                    ));
-                    var s = e.ExtractMostSignificantBits();
-                    r <<= 4;
-                    r |= s;
-                    last = last[4..];
-                    goto re;
-                }
-            }
-            foreach (var t in last)
-            {
-                r <<= 1;
-                if (t == '1')
-                {
-                    r |= 1;
-                }
-            }
-        }
-        if (!no_underline)
-        {
-            last = str;
-            var off = 0;
+            var off_i = 0;
             re:
             if (Vector512.IsHardwareAccelerated)
             {
                 if (last.Length >= 32)
                 {
                     var a = Vector512.LoadUnsafe(ref AsU16(last[^32..]));
-                    var e = Vector512.Equals(a, Vector512.Create((ushort)'_'));
-                    e = Vector512.Shuffle(e, Vector512.Create(
+                    a = Vector512.Shuffle(a, Vector512.Create(
                         (ushort)31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
                         15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
                     ));
-                    var s = e.ExtractMostSignificantBits();
-                    var i = 0;
-                    var n = 0;
-                    for (; s > 0; s = ((s - 1) & s) >> 1)
                     {
-                        n++;
-                        i = (int)ulong.TrailingZeroCount(s) + off;
-                        var mask = ulong.MaxValue << i;
-                        r = ((r & mask) >> 1) | (r & ~mask);
+                        var ev = Vector512.Equals(a, Vector512.Create((ushort)'1'));
+                        var sv = ev.ExtractMostSignificantBits();
+                        var n = 0;
+
+                        if (!no_underline)
+                        {
+                            var eu = Vector512.Equals(a, Vector512.Create((ushort)'_'));
+                            var su = eu.ExtractMostSignificantBits();
+                            for (; su > 0; su = ((su - 1) & su) >> 1)
+                            {
+                                n++;
+                                var i = (int)ulong.TrailingZeroCount(su);
+                                var mask = ulong.MaxValue << i;
+                                sv = ((sv & mask) >> 1) | (sv & ~mask);
+                            }
+                        }
+
+                        r |= sv << off_i;
+                        off_i += 32 - n;
                     }
                     last = last[..^32];
-                    off = i + n;
                     goto re;
                 }
             }
@@ -945,22 +876,31 @@ public partial class Parser
                 if (last.Length >= 16)
                 {
                     var a = Vector256.LoadUnsafe(ref AsU16(last[^16..]));
-                    var e = Vector256.Equals(a, Vector256.Create((ushort)'_'));
-                    e = Vector256.Shuffle(e, Vector256.Create(
+                    a = Vector256.Shuffle(a, Vector256.Create(
                         (ushort)15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
                     ));
-                    var s = e.ExtractMostSignificantBits();
-                    var i = 0;
-                    var n = 0;
-                    for (; s > 0; s = ((s - 1) & s) >> 1)
                     {
-                        n++;
-                        i = (int)ulong.TrailingZeroCount(s) + off;
-                        var mask = ulong.MaxValue << i;
-                        r = ((r & mask) >> 1) | (r & ~mask);
+                        var ev = Vector256.Equals(a, Vector256.Create((ushort)'1'));
+                        var sv = (ulong)ev.ExtractMostSignificantBits();
+                        var n = 0;
+
+                        if (!no_underline)
+                        {
+                            var eu = Vector256.Equals(a, Vector256.Create((ushort)'_'));
+                            var su = eu.ExtractMostSignificantBits();
+                            for (; su > 0; su = ((su - 1) & su) >> 1)
+                            {
+                                n++;
+                                var i = (int)ulong.TrailingZeroCount(su);
+                                var mask = ulong.MaxValue << i;
+                                sv = ((sv & mask) >> 1) | (sv & ~mask);
+                            }
+                        }
+
+                        r |= sv << off_i;
+                        off_i += 16 - n;
                     }
                     last = last[..^16];
-                    off = i + n;
                     goto re;
                 }
             }
@@ -969,22 +909,31 @@ public partial class Parser
                 if (last.Length >= 8)
                 {
                     var a = Vector128.LoadUnsafe(ref AsU16(last[^8..]));
-                    var e = Vector128.Equals(a, Vector128.Create((ushort)'_'));
-                    e = Vector128.Shuffle(e, Vector128.Create(
+                    a = Vector128.Shuffle(a, Vector128.Create(
                         (ushort)7, 6, 5, 4, 3, 2, 1, 0
                     ));
-                    var s = e.ExtractMostSignificantBits();
-                    var i = 0;
-                    var n = 0;
-                    for (; s > 0; s = ((s - 1) & s) >> 1)
                     {
-                        n++;
-                        i = (int)ulong.TrailingZeroCount(s) + off;
-                        var mask = ulong.MaxValue << i;
-                        r = ((r & mask) >> 1) | (r & ~mask);
+                        var ev = Vector128.Equals(a, Vector128.Create((ushort)'1'));
+                        var sv = (ulong)ev.ExtractMostSignificantBits();
+                        var n = 0;
+
+                        if (!no_underline)
+                        {
+                            var eu = Vector128.Equals(a, Vector128.Create((ushort)'_'));
+                            var su = eu.ExtractMostSignificantBits();
+                            for (; su > 0; su = ((su - 1) & su) >> 1)
+                            {
+                                n++;
+                                var i = (int)ulong.TrailingZeroCount(su);
+                                var mask = ulong.MaxValue << i;
+                                sv = ((sv & mask) >> 1) | (sv & ~mask);
+                            }
+                        }
+
+                        r |= sv << off_i;
+                        off_i += 8 - n;
                     }
                     last = last[..^8];
-                    off = i + n;
                     goto re;
                 }
             }
@@ -993,33 +942,44 @@ public partial class Parser
                 if (last.Length >= 4)
                 {
                     var a = Vector64.LoadUnsafe(ref AsU16(last[^4..]));
-                    var e = Vector64.Equals(a, Vector64.Create((ushort)'_'));
-                    e = Vector64.Shuffle(e, Vector64.Create(
+                    a = Vector64.Shuffle(a, Vector64.Create(
                         (ushort)3, 2, 1, 0
                     ));
-                    var s = e.ExtractMostSignificantBits();
-                    var i = 0;
-                    var n = 0;
-                    for (; s > 0; s = ((s - 1) & s) >> 1)
                     {
-                        n++;
-                        i = (int)ulong.TrailingZeroCount(s) + off;
-                        var mask = ulong.MaxValue << i;
-                        r = ((r & mask) >> 1) | (r & ~mask);
+                        var ev = Vector64.Equals(a, Vector64.Create((ushort)'1'));
+                        var sv = (ulong)ev.ExtractMostSignificantBits();
+                        var n = 0;
+
+                        if (!no_underline)
+                        {
+                            var eu = Vector64.Equals(a, Vector64.Create((ushort)'_'));
+                            var su = eu.ExtractMostSignificantBits();
+                            for (; su > 0; su = ((su - 1) & su) >> 1)
+                            {
+                                n++;
+                                var i = (int)ulong.TrailingZeroCount(su);
+                                var mask = ulong.MaxValue << i;
+                                sv = ((sv & mask) >> 1) | (sv & ~mask);
+                            }
+                        }
+
+                        r |= sv << off_i;
+                        off_i += 4 - n;
                     }
                     last = last[..^4];
-                    off = i + n;
                     goto re;
                 }
             }
             var end = last.Length - 1;
             for (var c = end; c >= 0; c--)
             {
-                if (last[c] != '_') continue;
-                var n = end - c;
-                var i = n + off;
-                var mask = ulong.MaxValue << i;
-                r = ((r & mask) >> 1) | (r & ~mask);
+                var t = last[c];
+                if (t == '_') continue;
+                if (t == '1')
+                {
+                    r |= 1ul << off_i;
+                }
+                off_i++;
             }
         }
         return r;
