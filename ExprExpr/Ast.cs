@@ -1,32 +1,64 @@
 ﻿using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text;
+using Coplt.ExprExpr.Semantics;
 
 namespace Coplt.ExprExpr.Syntaxes;
 
-public abstract record Syntax(int offset);
+public abstract record Syntax(int offset)
+{
+    internal abstract Semantic ToSemantic();
+}
 
 public sealed record IdSyntax(int offset, string id) : Syntax(offset)
 {
     public override string ToString() => id;
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record CallSyntax(Syntax left, TupleSyntax args) : Syntax(left.offset)
 {
     public override string ToString() => $"{left}{args}";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record IndexSyntax(Syntax left, ArraySyntax args) : Syntax(left.offset)
 {
     public override string ToString() => $"{left}{args}";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record CondSyntax(Syntax cond, Syntax t, Syntax e) : Syntax(cond.offset)
 {
     public override string ToString() => $"({cond} ? {t} : {e})";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
-public abstract record LiteralSyntax(int offset) : Syntax(offset);
+public abstract record LiteralSyntax(int offset) : Syntax(offset)
+{
+    internal override Semantic ToSemantic() => new LiteralSemantic(this);
+
+    internal abstract Type GetValueType();
+
+    internal abstract object GetValue();
+
+    internal abstract Func<Expression, Expression>? Conversion(Type target);
+
+    internal abstract Expression ToExpr(Type target);
+}
 
 public enum StringType
 {
@@ -38,51 +70,141 @@ public enum StringType
 public sealed record StringLiteralSyntax(int offset, string value, StringType type) : LiteralSyntax(offset)
 {
     public override string ToString() => $"\"{value.Replace("\"", "\"\"")}\"";
+    internal override Type GetValueType() => type switch
+    {
+        StringType.Utf16 => typeof(string),
+        StringType.Utf8 => typeof(ReadOnlyMemory<byte>),
+        StringType.Char => typeof(char),
+        _ => throw new ArgumentOutOfRangeException()
+    };
+    internal override object GetValue() => type switch
+    {
+        StringType.Utf16 => value,
+        StringType.Utf8 => (ReadOnlyMemory<byte>)Encoding.UTF8.GetBytes(value),
+        StringType.Char => value[0],
+        _ => throw new ArgumentOutOfRangeException()
+    };
+    internal override Func<Expression, Expression>? Conversion(Type target) => type switch
+    {
+        StringType.Utf16 => Utils.ConvertIdentity,
+        StringType.Utf8 => Utils.ConvertIdentity,
+        StringType.Char => Utils.CharConversion(target),
+        _ => throw new ArgumentOutOfRangeException()
+    };
+    internal override Expression ToExpr(Type target) => type switch
+    {
+        StringType.Utf16 => target == typeof(char)
+            ? Expression.Constant(value[0], typeof(char))
+            : Expression.Constant(value, typeof(string)),
+        StringType.Utf8 => Expression.Constant((ReadOnlyMemory<byte>)Encoding.UTF8.GetBytes(value),
+            typeof(ReadOnlyMemory<byte>)),
+        StringType.Char => Expression.Constant(value[0], typeof(char)),
+        _ => throw new ArgumentOutOfRangeException()
+    };
 }
 
 public sealed record NullLiteralSyntax(int offset) : LiteralSyntax(offset)
 {
     public override string ToString() => "null";
+    internal override Type GetValueType() => typeof(object);
+    internal override object GetValue() => null!;
+    internal override Func<Expression, Expression>? Conversion(Type target) =>
+        static _ => Expression.Constant(null);
+    internal override Expression ToExpr(Type target) => Expression.Constant(null, target);
 }
 
 public sealed record BoolLiteralSyntax(int offset, bool value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString();
+    internal override Type GetValueType() => typeof(bool);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.ConvertIdentity;
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(bool));
 }
 
 public sealed record IntLiteralSyntax(int offset, int value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString();
+    internal override Type GetValueType() => typeof(int);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.ConvertIdentity;
+    internal override Expression ToExpr(Type target)
+    {
+        if (target == typeof(int)) return Expression.Constant((int)value, typeof(int));
+        if (target == typeof(uint)) return Expression.Constant((uint)value, typeof(uint));
+        if (target == typeof(long)) return Expression.Constant((long)value, typeof(long));
+        if (target == typeof(ulong)) return Expression.Constant((ulong)value, typeof(ulong));
+        if (target == typeof(float)) return Expression.Constant((float)value, typeof(float));
+        if (target == typeof(double)) return Expression.Constant((double)value, typeof(double));
+        if (target == typeof(decimal)) return Expression.Constant((decimal)value, typeof(decimal));
+        if (target == typeof(sbyte)) return Expression.Constant((sbyte)value, typeof(sbyte));
+        if (target == typeof(byte)) return Expression.Constant((byte)value, typeof(byte));
+        if (target == typeof(short)) return Expression.Constant((short)value, typeof(short));
+        if (target == typeof(ushort)) return Expression.Constant((ushort)value, typeof(ushort));
+        return Expression.Constant(value, typeof(int));
+    }
 }
 
 public sealed record UIntLiteralSyntax(int offset, uint value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString();
+    internal override Type GetValueType() => typeof(uint);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.UInt32Conversion(target);
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(uint));
 }
 
 public sealed record LongLiteralSyntax(int offset, long value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString();
+    internal override Type GetValueType() => typeof(long);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.ConvertIdentity;
+    internal override Expression ToExpr(Type target)
+    {
+        if (target == typeof(long)) return Expression.Constant((long)value, typeof(long));
+        if (target == typeof(ulong)) return Expression.Constant((ulong)value, typeof(ulong));
+        if (target == typeof(float)) return Expression.Constant((float)value, typeof(float));
+        if (target == typeof(double)) return Expression.Constant((double)value, typeof(double));
+        if (target == typeof(decimal)) return Expression.Constant((decimal)value, typeof(decimal));
+        return Expression.Constant(value, typeof(int));
+    }
 }
 
 public sealed record ULongLiteralSyntax(int offset, ulong value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString();
+    internal override Type GetValueType() => typeof(ulong);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.UInt64Conversion(target);
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(ulong));
 }
 
 public sealed record DoubleLiteralSyntax(int offset, double value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+    internal override Type GetValueType() => typeof(double);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.ConvertIdentity;
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(double));
 }
 
 public sealed record SingleLiteralSyntax(int offset, float value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+    internal override Type GetValueType() => typeof(float);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.SingleConversion(target);
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(float));
 }
 
 public sealed record DecimalLiteralSyntax(int offset, decimal value) : LiteralSyntax(offset)
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+    internal override Type GetValueType() => typeof(decimal);
+    internal override object GetValue() => value;
+    internal override Func<Expression, Expression>? Conversion(Type target) => Utils.ConvertIdentity;
+    internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(decimal));
 }
 
 public enum OpKind
@@ -253,6 +375,10 @@ public sealed record BinOpSyntax(Syntax left, Syntax right, OpKind kind) : Synta
     public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({left} {kind} {right})";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record PrefixOpSyntax(int offset, Syntax right, OpKind kind) : Syntax(offset)
@@ -261,6 +387,10 @@ public sealed record PrefixOpSyntax(int offset, Syntax right, OpKind kind) : Syn
     public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({kind} {right})";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record SuffixOpSyntax(Syntax left, OpKind kind) : Syntax(left.offset)
@@ -269,6 +399,10 @@ public sealed record SuffixOpSyntax(Syntax left, OpKind kind) : Syntax(left.offs
     public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({left} {kind})";
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record TupleSyntax(int offset, List<Syntax> items) : Syntax(offset)
@@ -291,6 +425,10 @@ public sealed record TupleSyntax(int offset, List<Syntax> items) : Syntax(offset
         }
         return hash.ToHashCode();
     }
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public sealed record ArraySyntax(int offset, List<Syntax> items) : Syntax(offset)
@@ -312,6 +450,10 @@ public sealed record ArraySyntax(int offset, List<Syntax> items) : Syntax(offset
             hash.Add(item.GetHashCode());
         }
         return hash.ToHashCode();
+    }
+    internal override Semantic ToSemantic()
+    {
+        throw new NotImplementedException();
     }
 }
 
