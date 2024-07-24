@@ -54,7 +54,7 @@ public partial class Parser
                 continue;
             }
             result &= r2;
-            if (op is BinOpKind.Cond)
+            if (op is Syntaxes.OpKind.Cond)
                 left = Cond(left!, right!, precedence - 1, ref result);
             else left = new BinOpSyntax(left!, right!, op);
         }
@@ -77,12 +77,12 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private BinOpKind OpKind(Code code, out Result result)
+    private OpKind OpKind(Code code, out Result result)
     {
         if (code.IsEmpty)
         {
             result = Result.Failed();
-            return BinOpKind.None;
+            return Syntaxes.OpKind.None;
         }
         switch (code[0])
         {
@@ -93,36 +93,36 @@ public partial class Parser
                     {
                         case '=':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Ne;
+                            return Syntaxes.OpKind.Ne;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.BoolNot;
+                return Syntaxes.OpKind.BoolNot;
             case '~':
                 result = Result.Ok(code, 1);
-                return BinOpKind.Not;
+                return Syntaxes.OpKind.Not;
             case '.':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '.')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.Range;
+                        return Syntaxes.OpKind.Range;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Path;
+                return Syntaxes.OpKind.Path;
             case '+':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '+')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.Inc;
+                        return Syntaxes.OpKind.Inc;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Add;
+                return Syntaxes.OpKind.Add;
             case '-':
                 if (code.Length >= 2)
                 {
@@ -130,63 +130,63 @@ public partial class Parser
                     {
                         case '>':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.PtrPath;
+                            return Syntaxes.OpKind.PtrPath;
                         case '-':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Dec;
+                            return Syntaxes.OpKind.Dec;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Sub;
+                return Syntaxes.OpKind.Sub;
             case '*':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '*')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.Pow;
+                        return Syntaxes.OpKind.Pow;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Mul;
+                return Syntaxes.OpKind.Mul;
             case '/':
                 result = Result.Ok(code, 1);
-                return BinOpKind.Div;
+                return Syntaxes.OpKind.Div;
             case '%':
                 result = Result.Ok(code, 1);
-                return BinOpKind.Rem;
+                return Syntaxes.OpKind.Rem;
             case '^':
                 result = Result.Ok(code, 1);
-                return BinOpKind.Xor;
+                return Syntaxes.OpKind.Xor;
             case '|':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '|')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.BoolOr;
+                        return Syntaxes.OpKind.BoolOr;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Or;
+                return Syntaxes.OpKind.Or;
             case '&':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '&')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.BoolAnd;
+                        return Syntaxes.OpKind.BoolAnd;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.And;
+                return Syntaxes.OpKind.And;
             case '=':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '=')
                     {
                         result = Result.Ok(code, 2);
-                        return BinOpKind.Eq;
+                        return Syntaxes.OpKind.Eq;
                     }
                 }
                 break;
@@ -197,17 +197,17 @@ public partial class Parser
                     {
                         case '?':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.NullCoalescing;
+                            return Syntaxes.OpKind.NullCoalescing;
                         case '!':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.NotNullCoalescing;
+                            return Syntaxes.OpKind.NotNullCoalescing;
                         case '.':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.TryPath;
+                            return Syntaxes.OpKind.TryPath;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Cond;
+                return Syntaxes.OpKind.Cond;
             case '<':
                 if (code.Length >= 2)
                 {
@@ -215,14 +215,14 @@ public partial class Parser
                     {
                         case '<':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Shl;
+                            return Syntaxes.OpKind.Shl;
                         case '=':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Le;
+                            return Syntaxes.OpKind.Le;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Lt;
+                return Syntaxes.OpKind.Lt;
             case '>':
                 if (code.Length >= 2)
                 {
@@ -234,21 +234,21 @@ public partial class Parser
                                 if (code[2] == '>')
                                 {
                                     result = Result.Ok(code, 3);
-                                    return BinOpKind.Shar;
+                                    return Syntaxes.OpKind.Shar;
                                 }
                             }
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Shr;
+                            return Syntaxes.OpKind.Shr;
                         case '=':
                             result = Result.Ok(code, 2);
-                            return BinOpKind.Ge;
+                            return Syntaxes.OpKind.Ge;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return BinOpKind.Gt;
+                return Syntaxes.OpKind.Gt;
         }
         result = Result.Failed();
-        return BinOpKind.None;
+        return Syntaxes.OpKind.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -270,12 +270,6 @@ public partial class Parser
             r &= r2;
             goto end;
         }
-        syn = PrefixOpSyntax(r.Last, out r2);
-        if (r2)
-        {
-            r &= r2;
-            goto end;
-        }
         syn = Literal(r.Last, out r2);
         if (r2)
         {
@@ -283,6 +277,12 @@ public partial class Parser
             goto end;
         }
         syn = Id(r.Last, out r2);
+        if (r2)
+        {
+            r &= r2;
+            goto end;
+        }
+        syn = PrefixOpSyntax(r.Last, out r2);
         if (r2)
         {
             r &= r2;
@@ -432,9 +432,10 @@ public partial class Parser
         if (result) return syn;
         syn = BoolLiteral(code, out result);
         if (result) return syn;
+        syn = FloatLiteral(code, out result);
+        if (result) return syn;
         syn = IntLiteral(code, out result);
         if (result) return syn;
-        // todo float
         return null;
     }
 
@@ -618,6 +619,110 @@ public partial class Parser
         }
         goto other;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private LiteralSyntax? FloatLiteral(Code code, out Result result)
+    {
+        bool frac_part = false, exp_part = false;
+        var r = Result.Ok(code, 0);
+        var r2 = FloatNumberPart(r.Last);
+        if (r2) r &= r2;
+        r2 = ParseOneChar(r.Last, '.');
+        if (r2)
+        {
+            r &= r2;
+            r2 = FloatNumberPart(r.Last);
+            if (r2)
+            {
+                r &= r2;
+                frac_part = true;
+            }
+        }
+        r2 = FloatExponentPart(r.Last);
+        if (r2)
+        {
+            r &= r2;
+            exp_part = true;
+        }
+        if (!(frac_part || exp_part))
+        {
+            result = Result.Failed();
+            return null;
+        }
+        var floatType = FloatTypeSuffix(r.Last, out var r3);
+        result = r & r3;
+        return floatType switch
+        {
+            FloatType.Double => new DoubleLiteralSyntax(code.Offset, ParserDoubleLiteralValue(code & r.Range)),
+            FloatType.Single => new SingleLiteralSyntax(code.Offset, ParserSingleLiteralValue(code & r.Range)),
+            FloatType.Decimal => new DecimalLiteralSyntax(code.Offset, ParserDecimalLiteralValue(code & r.Range)),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Result FloatNumberPart(Code code)
+    {
+        var r = DecimalDigit(code);
+        if (!r) return r;
+        {
+            re:
+            var r2 = DecoratedDecimalDigit(r.Last);
+            if (r2)
+            {
+                r &= r2;
+                goto re;
+            }
+        }
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Result FloatExponentPart(Code code)
+    {
+        var r = ParserAnyChars(code, "eE");
+        if (!r) return r;
+        r &= ParserAnyChars(r.Last, "+-");
+        var r2 = FloatNumberPart(r.Last);
+        if (!r2) throw new ParserException($"Floating point exponent part missing digits at {r.Last.Offset}");
+        r &= r2;
+        return r;
+    }
+
+    private enum FloatType
+    {
+        Double,
+        Single,
+        Decimal,
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private FloatType FloatTypeSuffix(Code code, out Result result)
+    {
+        if (code.IsEmpty)
+        {
+            result = Result.Failed();
+            return FloatType.Double;
+        }
+        if (char.ToLower(code[0]) == 'd')
+        {
+            result = Result.Ok(code, 1);
+            return FloatType.Double;
+        }
+        if (char.ToLower(code[0]) == 'f')
+        {
+            result = Result.Ok(code, 1);
+            return FloatType.Single;
+        }
+        if (char.ToLower(code[0]) == 'm')
+        {
+            result = Result.Ok(code, 1);
+            return FloatType.Decimal;
+        }
+        result = Result.Failed();
+        return FloatType.Double;
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Result Space(Code code) => ParserAnyChars(code, " \t\u00a0");

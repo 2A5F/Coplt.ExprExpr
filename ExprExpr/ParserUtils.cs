@@ -57,6 +57,8 @@ internal readonly ref struct Code(Str str, int offset)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Code operator &(Code a, Code b)
     {
+        if (a.IsEmpty) return b;
+        if (b.IsEmpty) return a;
         if (a.Offset > b.Offset) return b & a;
         var s = new Str(Unsafe.AsPointer(ref Unsafe.AsRef(in a[0])), (b.Offset - a.Offset + b.Length));
         return new(s, a.Offset);
@@ -831,6 +833,7 @@ public partial class Parser
     [MethodImpl(256 | 512)]
     public static ulong FastBinaryToInt(Str str, bool no_underline = false)
     {
+        // todo handling large number of underscore cases
         if (str.Length == 0) return 0;
         ulong r = 0;
         var last = str;
@@ -1355,6 +1358,40 @@ public partial class Parser
         return v;
         err:
         throw new ParserException($"Failed to parse integer literal: \"{str.ToString()}\"");
+    }
+
+    #endregion
+
+    #region ParseFloat
+
+    /// <summary>
+    /// Parsing float literal value
+    /// </summary>
+    [MethodImpl(256 | 512)]
+    internal static double ParserDoubleLiteralValue(Str str)
+    {
+        var s = str.ToString().Replace("_", "");
+        return double.Parse(s);
+    }
+
+    /// <summary>
+    /// Parsing float literal value
+    /// </summary>
+    [MethodImpl(256 | 512)]
+    internal static float ParserSingleLiteralValue(Str str)
+    {
+        var s = str.ToString().Replace("_", "");
+        return float.Parse(s);
+    }
+
+    /// <summary>
+    /// Parsing float literal value
+    /// </summary>
+    [MethodImpl(256 | 512)]
+    internal static decimal ParserDecimalLiteralValue(Str str)
+    {
+        var s = str.ToString().Replace("_", "");
+        return decimal.Parse(s);
     }
 
     #endregion

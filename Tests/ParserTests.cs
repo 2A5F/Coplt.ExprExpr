@@ -36,7 +36,7 @@ public class ParserTests
         Assert.That(s, Is.TypeOf<ULongLiteralSyntax>());
         Assert.That(((ULongLiteralSyntax)s).value, Is.EqualTo(123456UL));
     }
-    
+
     [Test]
     public void TestInt4()
     {
@@ -45,7 +45,7 @@ public class ParserTests
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(0x123af));
     }
-    
+
     [Test]
     public void TestInt5()
     {
@@ -53,6 +53,84 @@ public class ParserTests
         var s = p.Parse("0b0010_1001");
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(0b0010_1001));
+    }
+
+    [Test]
+    public void TestInt6()
+    {
+        var p = new Parser();
+        var s = p.Parse("123_456u");
+        Assert.That(s, Is.TypeOf<UIntLiteralSyntax>());
+        Assert.That(((UIntLiteralSyntax)s).value, Is.EqualTo(123456u));
+    }
+
+    [Test]
+    public void TestInt7()
+    {
+        var p = new Parser();
+        var s = p.Parse("123_456l");
+        Assert.That(s, Is.TypeOf<LongLiteralSyntax>());
+        Assert.That(((LongLiteralSyntax)s).value, Is.EqualTo(123456L));
+    }
+
+    #endregion
+
+    #region TestFloat
+
+    [Test]
+    public void TestFloat1()
+    {
+        var p = new Parser();
+        var s = p.Parse("123.456");
+        Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
+        Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(123.456));
+    }
+
+    [Test]
+    public void TestFloat2()
+    {
+        var p = new Parser();
+        var s = p.Parse("123.456f");
+        Assert.That(s, Is.TypeOf<SingleLiteralSyntax>());
+        Assert.That(((SingleLiteralSyntax)s).value, Is.EqualTo(123.456f));
+    }
+
+    [Test]
+    public void TestFloat3()
+    {
+        var p = new Parser();
+        var s = p.Parse("123.456m");
+        Assert.That(s, Is.TypeOf<DecimalLiteralSyntax>());
+        Assert.That(((DecimalLiteralSyntax)s).value, Is.EqualTo(123.456m));
+    }
+
+    [Test]
+    public void TestFloat4()
+    {
+        var p = new Parser();
+        var s = p.Parse("2_345e-2_0");
+        Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
+        Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(2_345e-2_0));
+    }
+
+    [Test]
+    public void TestFloat5()
+    {
+        var p = new Parser();
+        var s = p.Parse(".123");
+        Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
+        Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(.123));
+    }
+
+    [Test]
+    public void TestFloat6()
+    {
+        var p = new Parser();
+        var s = p.Parse("123.");
+        Assert.That(s, Is.EqualTo(new SuffixOpSyntax(
+            new IntLiteralSyntax(0, 123),
+            OpKind.Path
+        )));
     }
 
     #endregion
@@ -105,12 +183,12 @@ public class ParserTests
                 new TupleSyntax(0, [
                     new BinOpSyntax(
                         new IntLiteralSyntax(1, 1),
-                        new SuffixOpSyntax(new IntLiteralSyntax(5, 2), BinOpKind.BoolNot),
-                        BinOpKind.Add
+                        new SuffixOpSyntax(new IntLiteralSyntax(5, 2), OpKind.BoolNot),
+                        OpKind.Add
                     )
                 ]),
-                new PrefixOpSyntax(11, new IntLiteralSyntax(12, 3), BinOpKind.Not),
-                BinOpKind.Mul
+                new PrefixOpSyntax(11, new IntLiteralSyntax(12, 3), OpKind.Not),
+                OpKind.Mul
             )
         ));
     }
@@ -143,17 +221,17 @@ public class ParserTests
                 new BinOpSyntax(
                     new IntLiteralSyntax(0, 1),
                     new IntLiteralSyntax(4, 1),
-                    BinOpKind.Sub
+                    OpKind.Sub
                 ),
                 new BinOpSyntax(
                     new IntLiteralSyntax(8, 2),
                     new IntLiteralSyntax(12, 2),
-                    BinOpKind.Add
+                    OpKind.Add
                 ),
                 new BinOpSyntax(
                     new IntLiteralSyntax(16, 3),
                     new IntLiteralSyntax(20, 3),
-                    BinOpKind.Mul
+                    OpKind.Mul
                 )
             )
         ));

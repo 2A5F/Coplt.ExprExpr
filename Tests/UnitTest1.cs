@@ -347,5 +347,25 @@ public class Tests
         Assert.That(r, Is.EqualTo(0));
     }
 
+    [Test]
+    public static void TestFastBinaryToInt12()
+    {
+        var str = new char[32 + 16 + 8 + 4 + 2 + 1];
+        str.AsSpan().Fill('0');
+        const string t = "1000_1000_1000_1000_1000_1000_1000_1000";
+        t.AsSpan().CopyTo(str.AsSpan()[^t.Length..]);
+        var r = Parser.FastBinaryToInt(str);
+        Console.WriteLine(r.ToString("B"));
+        Assert.That(r, Is.EqualTo(0b1000_1000_1000_1000_1000_1000_1000_1000));
+    }
+
+    [Test]
+    public static void TestFastBinaryToInt13()
+    {
+        var r = Parser.FastBinaryToInt("__1_____________________________01___0");
+        Console.WriteLine(r.ToString("B"));
+        Assert.That(r, Is.EqualTo(0b__1_____________________________01___0));
+    }
+
     #endregion
 }

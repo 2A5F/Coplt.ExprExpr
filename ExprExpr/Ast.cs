@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq.Expressions;
 
 namespace Coplt.ExprExpr.Syntaxes;
@@ -69,7 +70,22 @@ public sealed record ULongLiteralSyntax(int offset, ulong value) : LiteralSyntax
     public override string ToString() => value.ToString();
 }
 
-public enum BinOpKind
+public sealed record DoubleLiteralSyntax(int offset, double value) : LiteralSyntax(offset)
+{
+    public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+}
+
+public sealed record SingleLiteralSyntax(int offset, float value) : LiteralSyntax(offset)
+{
+    public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+}
+
+public sealed record DecimalLiteralSyntax(int offset, decimal value) : LiteralSyntax(offset)
+{
+    public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+}
+
+public enum OpKind
 {
     None,
     /// <summary>
@@ -200,57 +216,57 @@ public enum BinOpKind
 
 public static class BinOpEx
 {
-    public static int Precedence(this BinOpKind kind) => kind switch
+    public static int Precedence(this OpKind kind) => kind switch
     {
-        BinOpKind.Path or BinOpKind.TryPath or BinOpKind.PtrPath => 0,
-        BinOpKind.Inc or BinOpKind.Dec or BinOpKind.BoolNot or BinOpKind.Not => 1,
-        BinOpKind.Range => 2,
-        BinOpKind.Mul or BinOpKind.Div or BinOpKind.Rem or BinOpKind.Pow => 3,
-        BinOpKind.Add or BinOpKind.Sub => 4,
-        BinOpKind.Shl or BinOpKind.Shr or BinOpKind.Shar => 5,
-        BinOpKind.Lt or BinOpKind.Gt or BinOpKind.Le or BinOpKind.Ge => 6,
-        BinOpKind.Eq or BinOpKind.Ne => 7,
-        BinOpKind.And => 8,
-        BinOpKind.Xor => 9,
-        BinOpKind.Or => 10,
-        BinOpKind.BoolAnd => 11,
-        BinOpKind.BoolOr => 12,
-        BinOpKind.NullCoalescing or BinOpKind.NotNullCoalescing => 13,
-        BinOpKind.Cond => 14,
+        OpKind.Path or OpKind.TryPath or OpKind.PtrPath => 0,
+        OpKind.Inc or OpKind.Dec or OpKind.BoolNot or OpKind.Not => 1,
+        OpKind.Range => 2,
+        OpKind.Mul or OpKind.Div or OpKind.Rem or OpKind.Pow => 3,
+        OpKind.Add or OpKind.Sub => 4,
+        OpKind.Shl or OpKind.Shr or OpKind.Shar => 5,
+        OpKind.Lt or OpKind.Gt or OpKind.Le or OpKind.Ge => 6,
+        OpKind.Eq or OpKind.Ne => 7,
+        OpKind.And => 8,
+        OpKind.Xor => 9,
+        OpKind.Or => 10,
+        OpKind.BoolAnd => 11,
+        OpKind.BoolOr => 12,
+        OpKind.NullCoalescing or OpKind.NotNullCoalescing => 13,
+        OpKind.Cond => 14,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
     };
 
     /// <summary>
     /// true: ← ,  false: →
     /// </summary>
-    public static bool Associativity(this BinOpKind kind) => kind switch
+    public static bool Associativity(this OpKind kind) => kind switch
     {
-        BinOpKind.Pow => true,
+        OpKind.Pow => true,
         _ => false,
     };
 }
 
-public sealed record BinOpSyntax(Syntax left, Syntax right, BinOpKind kind) : Syntax(left.offset)
+public sealed record BinOpSyntax(Syntax left, Syntax right, OpKind kind) : Syntax(left.offset)
 {
     public Syntax left { get; init; } = left;
     public Syntax right { get; init; } = right;
-    public BinOpKind kind { get; init; } = kind;
+    public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({left} {kind} {right})";
 }
 
-public sealed record PrefixOpSyntax(int offset, Syntax right, BinOpKind kind) : Syntax(offset)
+public sealed record PrefixOpSyntax(int offset, Syntax right, OpKind kind) : Syntax(offset)
 {
     public Syntax right { get; init; } = right;
-    public BinOpKind kind { get; init; } = kind;
+    public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({kind} {right})";
 }
 
-public sealed record SuffixOpSyntax(Syntax left, BinOpKind kind) : Syntax(left.offset)
+public sealed record SuffixOpSyntax(Syntax left, OpKind kind) : Syntax(left.offset)
 {
     public Syntax left { get; init; } = left;
-    public BinOpKind kind { get; init; } = kind;
+    public OpKind kind { get; init; } = kind;
 
     public override string ToString() => $"({left} {kind})";
 }
