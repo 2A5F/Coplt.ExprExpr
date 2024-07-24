@@ -144,7 +144,7 @@ public readonly record struct CharRange
     }
 }
 
-public partial class Parser
+public static partial  class Parser
 {
     #region Utils
 

@@ -12,9 +12,9 @@ using Coplt.ExprExpr.Syntaxes;
 
 namespace Coplt.ExprExpr.Parsers;
 
-public partial class Parser
+public static partial class Parser
 {
-    public Syntax Parse(Str str)
+    public static Syntax Parse(Str str)
     {
         Code code = str;
         var syn = Root(code, int.MaxValue, out var result);
@@ -27,7 +27,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Syntax? Root(Code code, int max_precedence, out Result result)
+    private static Syntax? Root(Code code, int max_precedence, out Result result)
     {
         var syn = Op(code, max_precedence, out result);
         if (result) return syn;
@@ -35,7 +35,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Syntax? Op(Code code, int max_precedence, out Result result)
+    private static Syntax? Op(Code code, int max_precedence, out Result result)
     {
         var left = NoOpSyntax(code, out result);
         if (!result) return null;
@@ -62,7 +62,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private CondSyntax? Cond(Syntax left, Syntax right, int max_precedence, ref Result result)
+    private static CondSyntax? Cond(Syntax left, Syntax right, int max_precedence, ref Result result)
     {
         SkipSpace(ref result);
         if (result.Last.IsEmpty || result.Last[0] != ':')
@@ -77,7 +77,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private OpKind OpKind(Code code, out Result result)
+    private static OpKind OpKind(Code code, out Result result)
     {
         if (code.IsEmpty)
         {
@@ -252,7 +252,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Syntax? NoOpSyntax(Code code, out Result result)
+    private static Syntax? NoOpSyntax(Code code, out Result result)
     {
         var r = new Result(false, default, code);
         SkipSpace(ref r);
@@ -319,7 +319,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Syntax? PrefixOpSyntax(Code code, out Result result)
+    private static Syntax? PrefixOpSyntax(Code code, out Result result)
     {
         var op = OpKind(code, out result);
         if (!result) return null;
@@ -331,7 +331,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TupleSyntax? Tuple(Code code, out Result result)
+    private static TupleSyntax? Tuple(Code code, out Result result)
     {
         result = ParseOneChar(code, '(');
         if (!result) return null;
@@ -367,7 +367,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ArraySyntax? Array(Code code, out Result result)
+    private static ArraySyntax? Array(Code code, out Result result)
     {
         result = ParseOneChar(code, '[');
         if (!result) return null;
@@ -412,7 +412,7 @@ public partial class Parser
     private static partial Regex GetIdBodyRegex();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private IdSyntax? Id(Code code, out Result result)
+    private static IdSyntax? Id(Code code, out Result result)
     {
         foreach (var match in IdRegex.EnumerateMatches(code.Str))
         {
@@ -424,7 +424,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? Literal(Code code, out Result result)
+    private static LiteralSyntax? Literal(Code code, out Result result)
     {
         var syn = StringLiteral(code, out result);
         if (result) return syn;
@@ -440,7 +440,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? NullLiteral(Code code, out Result result)
+    private static LiteralSyntax? NullLiteral(Code code, out Result result)
     {
         result = ParseSubstr(code, "null");
         if (result) return new NullLiteralSyntax(code.Offset);
@@ -448,7 +448,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? BoolLiteral(Code code, out Result result)
+    private static LiteralSyntax? BoolLiteral(Code code, out Result result)
     {
         result = ParseSubstr(code, "true");
         if (result) return new BoolLiteralSyntax(code.Offset, true);
@@ -458,7 +458,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? IntLiteral(Code code, out Result result)
+    private static LiteralSyntax? IntLiteral(Code code, out Result result)
     {
         var syn = HexIntLiteral(code, out result);
         if (result) return syn;
@@ -470,7 +470,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? BinaryIntLiteral(Code code, out Result result)
+    private static LiteralSyntax? BinaryIntLiteral(Code code, out Result result)
     {
         if (code.IsEmpty || code.Length < 3 || code.Str is not ['0', 'b' or 'B', ..])
         {
@@ -498,7 +498,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? HexIntLiteral(Code code, out Result result)
+    private static LiteralSyntax? HexIntLiteral(Code code, out Result result)
     {
         if (code.IsEmpty || code.Length < 3 || code.Str is not ['0', 'x' or 'X', ..])
         {
@@ -526,7 +526,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? DecimalIntLiteral(Code code, out Result result)
+    private static LiteralSyntax? DecimalIntLiteral(Code code, out Result result)
     {
         var r = DecimalDigit(code);
         if (!r)
@@ -556,10 +556,10 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result DecimalDigit(Code code) => ParserInRange(code, '0', '9');
+    private static Result DecimalDigit(Code code) => ParserInRange(code, '0', '9');
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result DecoratedDecimalDigit(Code code)
+    private static Result DecoratedDecimalDigit(Code code)
     {
         var r = ParserChars(code, '_');
         return DecimalDigit(r ? r.Last : code);
@@ -568,14 +568,14 @@ public partial class Parser
     private static readonly CharRange[] DecoratedHexDigitRanges = [new('0', '9'), new('a', 'f'), new('A', 'F')];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result DecoratedHexDigit(Code code)
+    private static Result DecoratedHexDigit(Code code)
     {
         var r = ParserChars(code, '_');
         return ParserInRanges(r ? r.Last : code, DecoratedHexDigitRanges);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result DecoratedBinaryDigit(Code code)
+    private static Result DecoratedBinaryDigit(Code code)
     {
         var r = ParserChars(code, '_');
         return ParserAnyChars(r ? r.Last : code, "01");
@@ -590,7 +590,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private IntType IntegerTypeSuffix(Code code, out Result result)
+    private static IntType IntegerTypeSuffix(Code code, out Result result)
     {
         if (code.Length >= 2)
         {
@@ -621,7 +621,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? FloatLiteral(Code code, out Result result)
+    private static LiteralSyntax? FloatLiteral(Code code, out Result result)
     {
         bool frac_part = false, exp_part = false;
         var r = Result.Ok(code, 0);
@@ -661,7 +661,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result FloatNumberPart(Code code)
+    private static Result FloatNumberPart(Code code)
     {
         var r = DecimalDigit(code);
         if (!r) return r;
@@ -678,7 +678,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result FloatExponentPart(Code code)
+    private static Result FloatExponentPart(Code code)
     {
         var r = ParserAnyChars(code, "eE");
         if (!r) return r;
@@ -697,7 +697,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private FloatType FloatTypeSuffix(Code code, out Result result)
+    private static FloatType FloatTypeSuffix(Code code, out Result result)
     {
         if (code.IsEmpty)
         {
@@ -725,10 +725,10 @@ public partial class Parser
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Result Space(Code code) => ParserAnyChars(code, " \t\u00a0");
+    private static Result Space(Code code) => ParserAnyChars(code, " \t\u00a0");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SkipSpace(ref Result result)
+    private static void SkipSpace(ref Result result)
     {
         re:
         var r = Space(result.Last);
@@ -740,7 +740,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LiteralSyntax? StringLiteral(Code code, out Result result)
+    private static LiteralSyntax? StringLiteral(Code code, out Result result)
     {
         var syn = UnTypedStringLiteral(code, out result);
         if (!result) return null;
@@ -754,7 +754,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private StringType ParseStringType(Code code, out Result result)
+    private static StringType ParseStringType(Code code, out Result result)
     {
         if (code.IsEmpty) goto no;
         switch (code[0])
@@ -787,7 +787,7 @@ public partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private StringLiteralSyntax? UnTypedStringLiteral(Code code, out Result result)
+    private static StringLiteralSyntax? UnTypedStringLiteral(Code code, out Result result)
     {
         if (code.IsEmpty) goto failed;
         if (code[0] is not ('"' or '\'')) goto failed;

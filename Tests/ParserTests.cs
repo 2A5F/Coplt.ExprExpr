@@ -13,8 +13,7 @@ public class ParserTests
     [Test]
     public void TestInt1()
     {
-        var p = new Parser();
-        var s = p.Parse("123");
+        var s = Parser.Parse("123");
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(123));
     }
@@ -22,8 +21,7 @@ public class ParserTests
     [Test]
     public void TestInt2()
     {
-        var p = new Parser();
-        var s = p.Parse("123_456");
+        var s = Parser.Parse("123_456");
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(123456));
     }
@@ -31,8 +29,7 @@ public class ParserTests
     [Test]
     public void TestInt3()
     {
-        var p = new Parser();
-        var s = p.Parse("123_456UL");
+        var s = Parser.Parse("123_456UL");
         Assert.That(s, Is.TypeOf<ULongLiteralSyntax>());
         Assert.That(((ULongLiteralSyntax)s).value, Is.EqualTo(123456UL));
     }
@@ -40,8 +37,7 @@ public class ParserTests
     [Test]
     public void TestInt4()
     {
-        var p = new Parser();
-        var s = p.Parse("0x123af");
+        var s = Parser.Parse("0x123af");
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(0x123af));
     }
@@ -49,8 +45,7 @@ public class ParserTests
     [Test]
     public void TestInt5()
     {
-        var p = new Parser();
-        var s = p.Parse("0b0010_1001");
+        var s = Parser.Parse("0b0010_1001");
         Assert.That(s, Is.TypeOf<IntLiteralSyntax>());
         Assert.That(((IntLiteralSyntax)s).value, Is.EqualTo(0b0010_1001));
     }
@@ -58,8 +53,7 @@ public class ParserTests
     [Test]
     public void TestInt6()
     {
-        var p = new Parser();
-        var s = p.Parse("123_456u");
+        var s = Parser.Parse("123_456u");
         Assert.That(s, Is.TypeOf<UIntLiteralSyntax>());
         Assert.That(((UIntLiteralSyntax)s).value, Is.EqualTo(123456u));
     }
@@ -67,8 +61,7 @@ public class ParserTests
     [Test]
     public void TestInt7()
     {
-        var p = new Parser();
-        var s = p.Parse("123_456l");
+        var s = Parser.Parse("123_456l");
         Assert.That(s, Is.TypeOf<LongLiteralSyntax>());
         Assert.That(((LongLiteralSyntax)s).value, Is.EqualTo(123456L));
     }
@@ -80,8 +73,7 @@ public class ParserTests
     [Test]
     public void TestFloat1()
     {
-        var p = new Parser();
-        var s = p.Parse("123.456");
+        var s = Parser.Parse("123.456");
         Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
         Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(123.456));
     }
@@ -89,8 +81,7 @@ public class ParserTests
     [Test]
     public void TestFloat2()
     {
-        var p = new Parser();
-        var s = p.Parse("123.456f");
+        var s = Parser.Parse("123.456f");
         Assert.That(s, Is.TypeOf<SingleLiteralSyntax>());
         Assert.That(((SingleLiteralSyntax)s).value, Is.EqualTo(123.456f));
     }
@@ -98,8 +89,7 @@ public class ParserTests
     [Test]
     public void TestFloat3()
     {
-        var p = new Parser();
-        var s = p.Parse("123.456m");
+        var s = Parser.Parse("123.456m");
         Assert.That(s, Is.TypeOf<DecimalLiteralSyntax>());
         Assert.That(((DecimalLiteralSyntax)s).value, Is.EqualTo(123.456m));
     }
@@ -107,8 +97,7 @@ public class ParserTests
     [Test]
     public void TestFloat4()
     {
-        var p = new Parser();
-        var s = p.Parse("2_345e-2_0");
+        var s = Parser.Parse("2_345e-2_0");
         Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
         Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(2_345e-2_0));
     }
@@ -116,8 +105,7 @@ public class ParserTests
     [Test]
     public void TestFloat5()
     {
-        var p = new Parser();
-        var s = p.Parse(".123");
+        var s = Parser.Parse(".123");
         Assert.That(s, Is.TypeOf<DoubleLiteralSyntax>());
         Assert.That(((DoubleLiteralSyntax)s).value, Is.EqualTo(.123));
     }
@@ -125,8 +113,7 @@ public class ParserTests
     [Test]
     public void TestFloat6()
     {
-        var p = new Parser();
-        var s = p.Parse("123.");
+        var s = Parser.Parse("123.");
         Assert.That(s, Is.EqualTo(new SuffixOpSyntax(
             new IntLiteralSyntax(0, 123),
             OpKind.Path
@@ -140,8 +127,7 @@ public class ParserTests
     [Test]
     public void TestNull1()
     {
-        var p = new Parser();
-        var s = p.Parse("null");
+        var s = Parser.Parse("null");
         Assert.That(s, Is.TypeOf<NullLiteralSyntax>());
     }
 
@@ -152,8 +138,7 @@ public class ParserTests
     [Test]
     public void TestBool1()
     {
-        var p = new Parser();
-        var s = p.Parse("true");
+        var s = Parser.Parse("true");
         Assert.That(s, Is.TypeOf<BoolLiteralSyntax>());
         Assert.That(((BoolLiteralSyntax)s).value, Is.True);
     }
@@ -161,8 +146,7 @@ public class ParserTests
     [Test]
     public void TestBool2()
     {
-        var p = new Parser();
-        var s = p.Parse("false");
+        var s = Parser.Parse("false");
         Assert.That(s, Is.TypeOf<BoolLiteralSyntax>());
         Assert.That(((BoolLiteralSyntax)s).value, Is.False);
     }
@@ -174,8 +158,7 @@ public class ParserTests
     [Test]
     public void TestOp1()
     {
-        var p = new Parser();
-        var s = p.Parse("(1 + 2!) * ~3");
+        var s = Parser.Parse("(1 + 2!) * ~3");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<BinOpSyntax>());
         Assert.That(s, Is.EqualTo(
@@ -196,8 +179,7 @@ public class ParserTests
     [Test]
     public void TestCondOp1()
     {
-        var p = new Parser();
-        var s = p.Parse("1 ? 2 : 3");
+        var s = Parser.Parse("1 ? 2 : 3");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<CondSyntax>());
         Assert.That(s, Is.EqualTo(
@@ -212,8 +194,7 @@ public class ParserTests
     [Test]
     public void TestCondOp2()
     {
-        var p = new Parser();
-        var s = p.Parse("1 - 1 ? 2 + 2 : 3 * 3");
+        var s = Parser.Parse("1 - 1 ? 2 + 2 : 3 * 3");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<CondSyntax>());
         Assert.That(s, Is.EqualTo(
@@ -244,8 +225,7 @@ public class ParserTests
     [Test]
     public void TestId1()
     {
-        var p = new Parser();
-        var s = p.Parse("asd");
+        var s = Parser.Parse("asd");
         Assert.That(s, Is.TypeOf<IdSyntax>());
         Assert.That(((IdSyntax)s).id, Is.EqualTo("asd"));
     }
@@ -253,8 +233,7 @@ public class ParserTests
     [Test]
     public void TestId2()
     {
-        var p = new Parser();
-        var s = p.Parse("阿斯顿");
+        var s = Parser.Parse("阿斯顿");
         Assert.That(s, Is.TypeOf<IdSyntax>());
         Assert.That(((IdSyntax)s).id, Is.EqualTo("阿斯顿"));
     }
@@ -262,8 +241,7 @@ public class ParserTests
     [Test]
     public void TestId3()
     {
-        var p = new Parser();
-        var s = p.Parse("_阿斯顿_123_asd_");
+        var s = Parser.Parse("_阿斯顿_123_asd_");
         Assert.That(s, Is.TypeOf<IdSyntax>());
         Assert.That(((IdSyntax)s).id, Is.EqualTo("_阿斯顿_123_asd_"));
     }
@@ -275,8 +253,7 @@ public class ParserTests
     [Test]
     public void TestCall1()
     {
-        var p = new Parser();
-        var s = p.Parse("sin(1)");
+        var s = Parser.Parse("sin(1)");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<CallSyntax>());
         Assert.That(s, Is.EqualTo(
@@ -294,8 +271,7 @@ public class ParserTests
     [Test]
     public void TestIndex1()
     {
-        var p = new Parser();
-        var s = p.Parse("arr[1]");
+        var s = Parser.Parse("arr[1]");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<IndexSyntax>());
         Assert.That(s, Is.EqualTo(
@@ -313,8 +289,7 @@ public class ParserTests
     [Test]
     public void TestString1()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""asd""");
+        var s = Parser.Parse(@"""asd""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("asd"));
@@ -323,8 +298,7 @@ public class ParserTests
     [Test]
     public void TestString2()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""asd\n""");
+        var s = Parser.Parse(@"""asd\n""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("asd\n"));
@@ -333,8 +307,7 @@ public class ParserTests
     [Test]
     public void TestString3()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""\nasd""");
+        var s = Parser.Parse(@"""\nasd""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("\nasd"));
@@ -343,8 +316,7 @@ public class ParserTests
     [Test]
     public void TestString4()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""123\nasd""");
+        var s = Parser.Parse(@"""123\nasd""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("123\nasd"));
@@ -353,8 +325,7 @@ public class ParserTests
     [Test]
     public void TestString5()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""""");
+        var s = Parser.Parse(@"""""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo(""));
@@ -363,8 +334,7 @@ public class ParserTests
     [Test]
     public void TestString6()
     {
-        var p = new Parser();
-        var s = p.Parse(@"'\'\""\\\n\r\a\b\e\f\t\v\0'");
+        var s = Parser.Parse(@"'\'\""\\\n\r\a\b\e\f\t\v\0'");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("\'\"\\\n\r\a\b\u001B\f\t\v\0"));
@@ -373,8 +343,7 @@ public class ParserTests
     [Test]
     public void TestString7()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""\u2A5F""");
+        var s = Parser.Parse(@"""\u2A5F""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("\u2A5F"));
@@ -383,8 +352,7 @@ public class ParserTests
     [Test]
     public void TestString8()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""\U0001F602""");
+        var s = Parser.Parse(@"""\U0001F602""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("😂"));
@@ -393,8 +361,7 @@ public class ParserTests
     [Test]
     public void TestString9()
     {
-        var p = new Parser();
-        var s = p.Parse(@"""\uD83D\uDE02""");
+        var s = Parser.Parse(@"""\uD83D\uDE02""");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("😂"));
@@ -403,8 +370,7 @@ public class ParserTests
     [Test]
     public void TestString10()
     {
-        var p = new Parser();
-        var s = p.Parse(@"'a'c");
+        var s = Parser.Parse(@"'a'c");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("a"));
@@ -414,8 +380,7 @@ public class ParserTests
     [Test]
     public void TestString11()
     {
-        var p = new Parser();
-        var s = p.Parse(@"'asd'u8");
+        var s = Parser.Parse(@"'asd'u8");
         Console.WriteLine(s);
         Assert.That(s, Is.TypeOf<StringLiteralSyntax>());
         Assert.That(((StringLiteralSyntax)s).value, Is.EqualTo("asd"));
