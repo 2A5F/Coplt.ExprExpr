@@ -1,11 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Text.RegularExpressions;
 using Coplt.ExprExpr.Syntaxes;
@@ -23,7 +18,7 @@ public static partial class Parser
             if (result.Last.IsNotEmpty) throw new ParserException($"Unexpected Character at {result.Last.Offset}");
             return syn!;
         }
-        throw new ParserException($"Unexpected Character at 0");
+        throw new ParserException("Unexpected Character at 0");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -41,7 +36,7 @@ public static partial class Parser
         if (!result) return null;
         for (;;)
         {
-            var op = OpKind(result.Last, out var r);
+            var op = OpKinds(result.Last, out var r);
             if (!r) break;
             var precedence = op.Precedence();
             var associativity = op.Associativity();
@@ -54,7 +49,7 @@ public static partial class Parser
                 continue;
             }
             result &= r2;
-            if (op is Syntaxes.OpKind.Cond)
+            if (op is OpKind.Cond)
                 left = Cond(left!, right!, precedence - 1, ref result);
             else left = new BinOpSyntax(left!, right!, op);
         }
@@ -77,12 +72,12 @@ public static partial class Parser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static OpKind OpKind(Code code, out Result result)
+    private static OpKind OpKinds(Code code, out Result result)
     {
         if (code.IsEmpty)
         {
             result = Result.Failed();
-            return Syntaxes.OpKind.None;
+            return OpKind.None;
         }
         switch (code[0])
         {
@@ -93,36 +88,36 @@ public static partial class Parser
                     {
                         case '=':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Ne;
+                            return OpKind.Ne;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.BoolNot;
+                return OpKind.BoolNot;
             case '~':
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Not;
+                return OpKind.Not;
             case '.':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '.')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.Range;
+                        return OpKind.Range;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Path;
+                return OpKind.Path;
             case '+':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '+')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.Inc;
+                        return OpKind.Inc;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Add;
+                return OpKind.Add;
             case '-':
                 if (code.Length >= 2)
                 {
@@ -130,63 +125,63 @@ public static partial class Parser
                     {
                         case '>':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.PtrPath;
+                            return OpKind.PtrPath;
                         case '-':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Dec;
+                            return OpKind.Dec;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Sub;
+                return OpKind.Sub;
             case '*':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '*')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.Pow;
+                        return OpKind.Pow;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Mul;
+                return OpKind.Mul;
             case '/':
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Div;
+                return OpKind.Div;
             case '%':
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Rem;
+                return OpKind.Rem;
             case '^':
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Xor;
+                return OpKind.Xor;
             case '|':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '|')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.BoolOr;
+                        return OpKind.BoolOr;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Or;
+                return OpKind.Or;
             case '&':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '&')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.BoolAnd;
+                        return OpKind.BoolAnd;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.And;
+                return OpKind.And;
             case '=':
                 if (code.Length >= 2)
                 {
                     if (code[1] == '=')
                     {
                         result = Result.Ok(code, 2);
-                        return Syntaxes.OpKind.Eq;
+                        return OpKind.Eq;
                     }
                 }
                 break;
@@ -197,32 +192,40 @@ public static partial class Parser
                     {
                         case '?':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.NullCoalescing;
+                            return OpKind.NullCoalescing;
                         case '!':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.NotNullCoalescing;
+                            return OpKind.NotNullCoalescing;
                         case '.':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.TryPath;
+                            return OpKind.TryPath;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Cond;
+                return OpKind.Cond;
             case '<':
                 if (code.Length >= 2)
                 {
                     switch (code[1])
                     {
                         case '<':
+                            if (code.Length >= 3)
+                            {
+                                if (code[2] == '<')
+                                {
+                                    result = Result.Ok(code, 3);
+                                    return OpKind.Rol;
+                                }
+                            }
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Shl;
+                            return OpKind.Shl;
                         case '=':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Le;
+                            return OpKind.Le;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Lt;
+                return OpKind.Lt;
             case '>':
                 if (code.Length >= 2)
                 {
@@ -234,21 +237,21 @@ public static partial class Parser
                                 if (code[2] == '>')
                                 {
                                     result = Result.Ok(code, 3);
-                                    return Syntaxes.OpKind.Shar;
+                                    return OpKind.Ror;
                                 }
                             }
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Shr;
+                            return OpKind.Shr;
                         case '=':
                             result = Result.Ok(code, 2);
-                            return Syntaxes.OpKind.Ge;
+                            return OpKind.Ge;
                     }
                 }
                 result = Result.Ok(code, 1);
-                return Syntaxes.OpKind.Gt;
+                return OpKind.Gt;
         }
         result = Result.Failed();
-        return Syntaxes.OpKind.None;
+        return OpKind.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -286,7 +289,6 @@ public static partial class Parser
         if (r2)
         {
             r &= r2;
-            goto end;
         }
 
         end:
@@ -321,7 +323,7 @@ public static partial class Parser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Syntax? PrefixOpSyntax(Code code, out Result result)
     {
-        var op = OpKind(code, out result);
+        var op = OpKinds(code, out result);
         if (!result) return null;
         var right = NoOpSyntax(result.Last, out var r2);
         if (!r2) return null;
@@ -602,7 +604,7 @@ public static partial class Parser
             }
             goto len1;
         }
-        else if (code.Length >= 1) goto len1;
+        if (code.Length >= 1) goto len1;
         other:
         result = Result.Failed();
         return IntType.Int;

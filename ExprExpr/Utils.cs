@@ -1,4 +1,6 @@
 ﻿using System.Linq.Expressions;
+using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using InlineIL;
 using static InlineIL.IL.Emit;
@@ -15,6 +17,88 @@ internal static class Utils
         Unbox<T>();
         return ref IL.ReturnRef<T>();
     }
+
+    public static bool HasInterface(Type type, Type i)
+    {
+        return type.GetInterfaces()
+            .Any(a => a.IsGenericType && a.GetGenericTypeDefinition() == i);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Expression MakePowerExpr(Expression left, Expression right, Type type)
+    {
+        if (type == typeof(double)) return Expression.Power(left, right);
+        if (type == typeof(float)) return Expression.Call(PowMethod(type), left, right);
+        throw new NotSupportedException($"{type} does not support power");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MethodInfo PowMethod(Type type)
+    {
+        if (type == typeof(float))
+        {
+            Ldtoken(new MethodRef(typeof(MathF), nameof(MathF.Pow)));
+            return IL.Return<MethodInfo>();
+        }
+        if (type == typeof(double))
+        {
+            Ldtoken(new MethodRef(typeof(Math), nameof(Math.Pow)));
+            return IL.Return<MethodInfo>();
+        }
+        throw new NotSupportedException($"{type} does not support power");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MethodInfo RotateLeftMethod(Type type)
+    {
+        if (type == typeof(uint))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateLeft), typeof(uint), typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        if (type == typeof(ulong))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateLeft), typeof(ulong), typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        if (type == typeof(nuint))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateLeft), typeof(nuint), typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        throw new NotSupportedException($"{type} does not support rotate shift");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MethodInfo RotateRightMethod(Type type)
+    {
+        if (type == typeof(uint))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateRight), typeof(uint), typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        if (type == typeof(ulong))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateRight), typeof(ulong),
+                typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        if (type == typeof(nuint))
+        {
+            Ldtoken(new MethodRef(typeof(BitOperations), nameof(BitOperations.RotateRight), typeof(nuint),
+                typeof(int)));
+            return IL.Return<MethodInfo>();
+        }
+        throw new NotSupportedException($"{type} does not support rotate shift");
+    }
+
+    public static Typ LiteralIntTypes { get; } = Typ.Of(
+        typeof(sbyte), typeof(byte), typeof(short), typeof(ushort), typeof(int), typeof(uint),
+        typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)
+    );
+    public static Typ LiteralLongTypes { get; } = Typ.Of(
+        typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)
+    );
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Func<Expression, Expression>? Int32Conversion(Type target)
@@ -38,7 +122,7 @@ internal static class Utils
         if (target == typeof(decimal)) return ConvertToDecimal;
         return null;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Func<Expression, Expression>? Int64Conversion(Type target)
     {
