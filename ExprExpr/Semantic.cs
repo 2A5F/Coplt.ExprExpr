@@ -4,38 +4,25 @@ using System.Linq.Expressions;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Coplt.ExprExpr.Syntaxes;
+using Coplt.ExprExpr.Typing;
 using InlineIL;
 
 namespace Coplt.ExprExpr.Semantics;
 
-internal struct InferCtx()
-{
-    public Typ TargetType { get; set; } = Typ.TheHole;
-    public Constraint? TargetConstraints { get; set; }
-}
-
 internal abstract record Semantic
 {
-    /// <summary>
-    /// The result type of the expression
-    /// </summary>
-    public Typ Type { get; protected set; } = Typ.TheHole;
+    public Constraint? Constraint { get; protected set; }
 
     public abstract int Offset { get; }
 
-    /// <summary> Recursively initialize the leaf node type </summary>
-    public abstract void PreInferType(ref EvalBuildCtx bc);
-
-    public abstract void InferType(ref EvalBuildCtx bc, ref InferCtx ic);
-
+    public abstract void BuildConstraint(ref EvalBuildCtx bc, out Constraint constraint);
     public abstract Expression Build(ref EvalBuildCtx bc);
 
-    public Expression ToExpr(ref EvalBuildCtx ctx, Typ retType)
+    public Expression ToExpr(ref EvalBuildCtx ctx, Type retType)
     {
-        var root_ctx = new InferCtx { TargetType = retType };
-        PreInferType(ref ctx);
-        InferType(ref ctx, ref root_ctx);
-        if (Type is not Typ.One) throw new EvalException("Failed to infer type");
+        BuildConstraint(ref ctx, out var root_constraint);
+        Constraint!.Resolve(retType);
+        if (root_constraint.ResultType is null) throw new EvalException($"Failed to infer type at {Offset}");
         return Build(ref ctx);
     }
 }
@@ -44,19 +31,25 @@ internal sealed record LiteralSemantic(LiteralSyntax Syntax) : Semantic
 {
     public override int Offset => Syntax.offset;
 
-    public override void PreInferType(ref EvalBuildCtx bc)
+    public override void BuildConstraint(ref EvalBuildCtx bc, out Constraint constraint)
     {
-        Type = Syntax.GetPossibleType();
+        if (Syntax is NullLiteralSyntax)
+        {
+            constraint = Constraint ??= new AnyNullableConstraint { Semantic = this };
+            return;
+        }
+        var types = Syntax.GetPossibleType();
+        if (types.Length == 1)
+        {
+            constraint = Constraint ??= new FixedConstraint(types[0]) { Semantic = this };
+            return;
+        }
+        var defv = Syntax.GetDefaultType();
+        constraint = Constraint ??= new FallbackConstraint(types, defv) { Semantic = this };
     }
-    public override void InferType(ref EvalBuildCtx bc, ref InferCtx ic)
-    {
-        if (Type is Typ.One) return;
-        Type &= ic.TargetType;
-    }
-
     public override Expression Build(ref EvalBuildCtx bc)
     {
-        if (Type is not Typ.One(var type)) throw new UnreachableException("Internal logic error");
+        if (Constraint!.ResultType is not { } type) throw new UnreachableException("Internal logic error");
         var expr = Syntax.ToExpr(type);
         return expr;
     }
@@ -65,66 +58,17 @@ internal sealed record LiteralSemantic(LiteralSyntax Syntax) : Semantic
 internal sealed record BinOpSemantic(Semantic left, Semantic right, OpKind OpKind, BinOpSyntax RawSyntax) : Semantic
 {
     public override int Offset => RawSyntax.offset;
-    public override void PreInferType(ref EvalBuildCtx bc)
+
+    public override void BuildConstraint(ref EvalBuildCtx bc, out Constraint constraint)
     {
-        left.PreInferType(ref bc);
-        right.PreInferType(ref bc);
-    }
-
-    #region ConstraintCache
-
-    private static readonly Dictionary<OpKind, ConditionalWeakTable<Typ, Constraint>> ConstraintCache = new();
-
-    private static Constraint GetConstraint(OpKind op, Typ TargetType, Func<Typ, Constraint> create)
-    {
-        if (!ConstraintCache.TryGetValue(op, out var cache))
+        left.BuildConstraint(ref bc, out var l);
+        right.BuildConstraint(ref bc, out var r);
+        constraint = Constraint ??= OpKind switch
         {
-            cache = new();
-            ConstraintCache[op] = cache;
-        }
-        if (cache.TryGetValue(TargetType, out var c)) return c;
-        c = create(TargetType);
-        cache.Add(TargetType, c);
-        return c;
-    }
-
-    #endregion
-
-    #region Constraints
-
-    private static Constraint AddConstraint(Typ TargetType) =>
-        new InterfaceConstraint(new TRef.Open(typeof(IAdditionOperators<,,>), [Typ.TheHole, Typ.TheHole, TargetType]));
-
-    #endregion
-
-
-    public override void InferType(ref EvalBuildCtx bc, ref InferCtx ic)
-    {
-        switch (OpKind)
-        {
-            case OpKind.Add:
-            {
-                var sic = new InferCtx
-                {
-                    TargetConstraints = GetConstraint(OpKind.Add, ic.TargetType, AddConstraint)
-                };
-                left.InferType(ref bc, ref ic);
-
-                // todo
-                break;
-            }
-            case OpKind.Add or OpKind.Sub or OpKind.Mul or OpKind.Div or OpKind.Rem:
-            {
-                // todo
-                break;
-            }
-            case OpKind.Pow:
-            {
-                // todo
-                break;
-            }
-            default: throw new EvalException($"Unsupported infix operator {OpKind} at {Offset}");
-        }
+            OpKind.Add => BinOpConstraint.Op_Addition(l, r, this),
+            // todo
+            _ => throw new EvalException($"Unsupported infix operator {OpKind} at {Offset}")
+        };
     }
     public override Expression Build(ref EvalBuildCtx bc)
     {

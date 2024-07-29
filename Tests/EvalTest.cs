@@ -21,4 +21,11 @@ public class EvalTest
         var r = Expr.Eval<int>("1 + 2");
         Assert.That(r, Is.EqualTo(3));
     }
+    
+    [Test]
+    public void Test3()
+    {
+        var r = Expr.Eval<int>("1 + 2 + 3");
+        Assert.That(r, Is.EqualTo(6));
+    }
 }

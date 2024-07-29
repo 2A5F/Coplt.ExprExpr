@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections.Immutable;
+using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -92,13 +93,48 @@ internal static class Utils
         throw new NotSupportedException($"{type} does not support rotate shift");
     }
 
-    public static Typ LiteralIntTypes { get; } = Typ.Of(
+    public static ImmArr<Type> LiteralIntTypes { get; } =
+    [
         typeof(sbyte), typeof(byte), typeof(short), typeof(ushort), typeof(int), typeof(uint),
         typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)
-    );
-    public static Typ LiteralLongTypes { get; } = Typ.Of(
+    ];
+    public static ImmArr<Type> LiteralLongTypes { get; } =
+    [
         typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)
-    );
+    ];
+
+    public static readonly Type[] Int32ConversionTarget =
+        [typeof(int), typeof(long), typeof(float), typeof(double), typeof(decimal)];
+
+    public static readonly Type[] UInt32ConversionTarget =
+        [typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)];
+
+    public static readonly Type[] Int64ConversionTarget =
+        [typeof(long), typeof(float), typeof(double), typeof(decimal)];
+
+    public static readonly Type[] UInt64ConversionTarget =
+        [typeof(ulong), typeof(float), typeof(double), typeof(decimal)];
+
+    public static readonly Type[] SingleConversionTarget =
+        [typeof(float), typeof(double), typeof(decimal)];
+
+    public static readonly Type[] CharConversionTarget =
+    [
+        typeof(char), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float),
+        typeof(double), typeof(decimal)
+    ];
+
+    public static bool PrimitiveCanConversion(Type src, Type dst)
+    {
+        if (src == dst) return true;
+        if (src == typeof(int)) return Int32ConversionTarget.Contains(dst);
+        if (src == typeof(uint)) return UInt32ConversionTarget.Contains(dst);
+        if (src == typeof(long)) return Int64ConversionTarget.Contains(dst);
+        if (src == typeof(ulong)) return UInt64ConversionTarget.Contains(dst);
+        if (src == typeof(float)) return SingleConversionTarget.Contains(dst);
+        if (src == typeof(char)) return CharConversionTarget.Contains(dst);
+        return false;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Func<Expression, Expression>? Int32Conversion(Type target)

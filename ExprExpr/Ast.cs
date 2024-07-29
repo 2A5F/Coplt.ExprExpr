@@ -53,7 +53,9 @@ public abstract record LiteralSyntax(int offset) : Syntax(offset)
 
     internal abstract Type GetValueType();
 
-    internal abstract Typ GetPossibleType();
+    internal abstract ImmArr<Type> GetPossibleType();
+
+    internal abstract Type GetDefaultType();
 
     internal abstract Expression ToExpr(Type target);
 }
@@ -75,7 +77,8 @@ public sealed record StringLiteralSyntax(int offset, string value, StringType ty
         StringType.Char => typeof(char),
         _ => throw new ArgumentOutOfRangeException()
     };
-    internal override Typ GetPossibleType() => type switch
+    internal override ImmArr<Type> GetPossibleType() => [GetDefaultType()];
+    internal override Type GetDefaultType() => type switch
     {
         StringType.Utf16 => typeof(string),
         StringType.Utf8 => typeof(ReadOnlyMemory<byte>),
@@ -98,7 +101,8 @@ public sealed record NullLiteralSyntax(int offset) : LiteralSyntax(offset)
 {
     public override string ToString() => "null";
     internal override Type GetValueType() => typeof(object);
-    internal override Typ GetPossibleType() => Typ.TheBottom;
+    internal override ImmArr<Type> GetPossibleType() => [];
+    internal override Type GetDefaultType() => typeof(object);
     internal override Expression ToExpr(Type target) => Expression.Constant(null, target);
 }
 
@@ -106,7 +110,8 @@ public sealed record BoolLiteralSyntax(int offset, bool value) : LiteralSyntax(o
 {
     public override string ToString() => value.ToString();
     internal override Type GetValueType() => typeof(bool);
-    internal override Typ GetPossibleType() => typeof(bool);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(bool)];
+    internal override Type GetDefaultType() => typeof(bool);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(bool));
 }
 
@@ -114,10 +119,11 @@ public sealed record IntLiteralSyntax(int offset, int value) : LiteralSyntax(off
 {
     public override string ToString() => value.ToString();
     internal override Type GetValueType() => typeof(int);
-    internal override Typ GetPossibleType() => Utils.LiteralIntTypes;
+    internal override ImmArr<Type> GetPossibleType() => Utils.LiteralIntTypes;
+    internal override Type GetDefaultType() => typeof(int);
     internal override Expression ToExpr(Type target)
     {
-        if (target == typeof(int)) return Expression.Constant((int)value, typeof(int));
+        if (target == typeof(int)) return Expression.Constant(value, typeof(int));
         if (target == typeof(uint)) return Expression.Constant((uint)value, typeof(uint));
         if (target == typeof(long)) return Expression.Constant((long)value, typeof(long));
         if (target == typeof(ulong)) return Expression.Constant((ulong)value, typeof(ulong));
@@ -136,7 +142,8 @@ public sealed record UIntLiteralSyntax(int offset, uint value) : LiteralSyntax(o
 {
     public override string ToString() => value.ToString();
     internal override Type GetValueType() => typeof(uint);
-    internal override Typ GetPossibleType() => typeof(uint);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(uint)];
+    internal override Type GetDefaultType() => typeof(uint);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(uint));
 }
 
@@ -144,10 +151,11 @@ public sealed record LongLiteralSyntax(int offset, long value) : LiteralSyntax(o
 {
     public override string ToString() => value.ToString();
     internal override Type GetValueType() => typeof(long);
-    internal override Typ GetPossibleType() => Utils.LiteralLongTypes;
+    internal override ImmArr<Type> GetPossibleType() => Utils.LiteralLongTypes;
+    internal override Type GetDefaultType() => typeof(long);
     internal override Expression ToExpr(Type target)
     {
-        if (target == typeof(long)) return Expression.Constant((long)value, typeof(long));
+        if (target == typeof(long)) return Expression.Constant(value, typeof(long));
         if (target == typeof(ulong)) return Expression.Constant((ulong)value, typeof(ulong));
         if (target == typeof(float)) return Expression.Constant((float)value, typeof(float));
         if (target == typeof(double)) return Expression.Constant((double)value, typeof(double));
@@ -160,7 +168,8 @@ public sealed record ULongLiteralSyntax(int offset, ulong value) : LiteralSyntax
 {
     public override string ToString() => value.ToString();
     internal override Type GetValueType() => typeof(ulong);
-    internal override Typ GetPossibleType() => typeof(ulong);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(ulong)];
+    internal override Type GetDefaultType() => typeof(ulong);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(ulong));
 }
 
@@ -168,7 +177,8 @@ public sealed record DoubleLiteralSyntax(int offset, double value) : LiteralSynt
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
     internal override Type GetValueType() => typeof(double);
-    internal override Typ GetPossibleType() => typeof(double);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(double)];
+    internal override Type GetDefaultType() => typeof(double);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(double));
 }
 
@@ -176,7 +186,8 @@ public sealed record SingleLiteralSyntax(int offset, float value) : LiteralSynta
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
     internal override Type GetValueType() => typeof(float);
-    internal override Typ GetPossibleType() => typeof(float);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(float)];
+    internal override Type GetDefaultType() => typeof(float);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(float));
 }
 
@@ -184,7 +195,8 @@ public sealed record DecimalLiteralSyntax(int offset, decimal value) : LiteralSy
 {
     public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
     internal override Type GetValueType() => typeof(decimal);
-    internal override Typ GetPossibleType() => typeof(decimal);
+    internal override ImmArr<Type> GetPossibleType() => [typeof(decimal)];
+    internal override Type GetDefaultType() => typeof(decimal);
     internal override Expression ToExpr(Type target) => Expression.Constant(value, typeof(decimal));
 }
 

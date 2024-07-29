@@ -1,140 +1,141 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using Coplt.ExprExpr.Semantics;
 
-namespace Coplt.ExprExpr;
+namespace Coplt.ExprExpr.Typing;
 
-internal abstract record TRef(Type Raw)
+internal abstract record Constraint
 {
-    public bool IsGeneric => Generics.Length > 0;
-    public ImmutableArray<Typ> Generics { get; protected set; }
+    public required Semantic Semantic { get; init; }
+    public Type? ResultType { get; protected set; }
+    /// <summary>
+    /// When call <see cref="Resolve"/>, target.ResultType must be not null
+    /// </summary>
+    public abstract void Resolve(Type? target);
 
-    public static implicit operator Type(TRef r) => r.Raw;
+    public virtual ImmArr<Type> InferPossibleTypes() => ResultType is null ? [] : [ResultType];
+}
 
-    public sealed record Rt(Type Raw) : TRef(Raw)
+internal record FixedConstraint(Type Type) : Constraint
+{
+    public override void Resolve(Type? target)
     {
-        private static readonly ConditionalWeakTable<Type, Rt> Cache = new();
+        if (target is not null && !target.IsAssignableFrom(Type))
+            throw new EvalException($"{Type} can not assignable to {target} at {Semantic.Offset}");
+        ResultType = Type;
+    }
 
-        public static Rt Create(Type raw)
+    public override ImmArr<Type> InferPossibleTypes() => [Type];
+}
+
+/// <summary>
+/// <see cref="Types"/> must include <see cref="Default"/>
+/// </summary>
+internal record FallbackConstraint(ImmArr<Type> Types, Type Default) : Constraint
+{
+    public override void Resolve(Type? target)
+    {
+        if (target is null) goto def;
+        foreach (var type in Types)
         {
-            if (Cache.TryGetValue(raw, out var t)) return t;
-            t = new(raw);
-            Cache.Add(raw, t);
-            if (raw.IsGenericType)
+            if (target.IsAssignableFrom(type))
             {
-                t.Generics = [..raw.GetGenericArguments().Select(Create).Select(static t => (Typ)Typ.One.Of(t))];
+                ResultType = type;
+                return;
             }
-            return t;
         }
+        if (!target.IsAssignableFrom(Default))
+            throw new EvalException($"{Default} can not assignable to {target} at {Semantic.Offset}");
+        def:
+        ResultType = Default;
     }
 
-    public sealed record Open : TRef
-    {
-        public Open(Type Raw, ImmutableArray<Typ> Generics) : base(Raw)
-        {
-            this.Generics = Generics;
-        }
-    }
+    public override ImmArr<Type> InferPossibleTypes() => Types;
 }
 
-internal abstract record Typ
+internal record BinOpConstraint(Constraint L, Constraint R, string Name, Type[] Primitives) : Constraint
 {
-    public static Hole TheHole { get; } = new();
-    public static Top TheTop { get; } = new();
-    public static Bottom TheBottom { get; } = new();
+    private static readonly Type[] Op_Addition_Primitives =
+        [typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)];
 
-    public sealed record Hole : Typ;
+    public static BinOpConstraint Op_Addition(Constraint L, Constraint R, Semantic Semantic) =>
+        new(L, R, "op_Addition", Op_Addition_Primitives) { Semantic = Semantic };
 
-    public sealed record Top : Typ;
-
-    public sealed record Bottom : Typ;
-
-    public sealed record One : Typ
+    public override void Resolve(Type? target)
     {
-        private static ConditionalWeakTable<TRef, One> Cache = new();
-        public TRef Ref { get; init; }
-
-        public static One Of(TRef Ref)
+        var lt = L.InferPossibleTypes();
+        var rt = R.InferPossibleTypes();
+        if (lt.Length is 0)
         {
-            if (Cache.TryGetValue(Ref, out var r)) return r;
-            r = new One(Ref);
-            Cache.Add(Ref, r);
-            return r;
+            L.Resolve(null);
+            lt = L.InferPossibleTypes();
         }
-
-        private One(TRef Ref)
+        if (rt.Length is 0)
         {
-            this.Ref = Ref;
+            R.Resolve(null);
+            rt = R.InferPossibleTypes();
         }
-
-        public override string ToString()
-        {
-            return $"One({Ref})";
-        }
-        public void Deconstruct(out TRef Ref)
-        {
-            Ref = this.Ref;
-        }
+        if (lt.Length is 0 || rt.Length is 0) goto err;
+        if (Resolve(target, lt, rt, false)) return;
+        if (Resolve(target, rt, lt, true)) return;
+        err:
+        throw new EvalException($"Failed to infer type at {Semantic.Offset}");
     }
 
-    public sealed record Any(ImmutableHashSet<Typ> Types) : Typ
+    private bool Resolve(Type? target, ImmArr<Type> lt, ImmArr<Type> rt, bool inv)
     {
-        public override string ToString()
+        foreach (var l in lt)
         {
-            return $"Any {{ {string.Join(" | ", Types)} }}";
+            if (l.IsPrimitive && Primitives.Contains(l))
+            {
+                foreach (var r in rt)
+                {
+                    if (!Utils.PrimitiveCanConversion(r, l)) continue;
+                    if (target is null) goto ok;
+                    if (target.IsAssignableFrom(l)) // todo check convert
+                        goto ok;
+                    continue;
+                    ok:
+                    L.Resolve(l);
+                    R.Resolve(r);
+                    ResultType = l;
+                    return true;
+                }
+            }
+            foreach (var op in l.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                         .Where(m => m.Name == Name))
+            {
+                var p = op.GetParameters();
+                if (p is not [var p0, var p1]) continue;
+                if (inv) (p0, p1) = (p1, p0);
+                if (p0.ParameterType != l) continue;
+                foreach (var r in rt)
+                {
+                    if (p1.ParameterType.IsAssignableFrom(r))
+                    {
+                        if (target is null) goto ok;
+                        if (target.IsAssignableFrom(op.ReturnType)) // todo check convert
+                            goto ok;
+                        continue;
+                        ok:
+                        L.Resolve(l);
+                        R.Resolve(r);
+                        ResultType = op.ReturnType;
+                        return true;
+                    }
+                }
+            }
         }
+        return false;
     }
-
-    public static implicit operator Typ(Type type) => One.Of(TRef.Rt.Create(type));
-
-    public static Typ Of(params Typ[] types)
-    {
-        if (types.Length == 0) return TheBottom;
-        var set = types.Select(static t => t is Any ? throw new UnreachableException("Types cannot be nested") : t)
-            .Where(static t => t is not Bottom)
-            .ToImmutableHashSet();
-        return Of(set);
-    }
-
-    private static Typ Of(ImmutableHashSet<Typ> set)
-    {
-        if (set.Contains(TheTop)) return TheTop;
-        var len = set.Count;
-        set = set.Remove(TheHole);
-        if (set.Count == 0)
-        {
-            if (len != 0) return TheHole;
-            return TheBottom;
-        }
-        return set.Count switch
-        {
-            1 => set.First(),
-            _ => new Any(set)
-        };
-    }
-
-    public static Typ operator &(Typ a, Typ b) => (a, b) switch
-    {
-        (Top, Top) or (Bottom or Hole, Bottom or Hole) => a,
-        (Top, not Top) or (not Bottom, Bottom or Hole) => a,
-        (not Top, Top) or (Bottom or Hole, not Bottom) => b,
-        (Any s, not Any) => s.Types.Contains(b) ? b : TheHole,
-        (not Any, Any s) => s.Types.Contains(b) ? b : TheHole,
-        (Any sa, Any sb) => Of(sa.Types.Intersect(sb.Types)),
-        _ => throw new UnreachableException("Internal logic error"),
-    };
-
-    public static Typ operator |(Typ a, Typ b) => (a, b) switch
-    {
-        (Hole, Hole) => a,
-        (Hole, not Hole) => a,
-        (not Hole, Hole) => b,
-        (Any s, not Any) => new Any(s.Types.Add(b)),
-        (not Any, Any s) => new Any(s.Types.Add(a)),
-        (Any sa, Any sb) => new Any(sa.Types.Union(sb.Types)),
-        _ => a == b ? a : Of(ImmutableHashSet.Create(a, b))
-    };
 }
 
-internal abstract record Constraint { }
-internal record InterfaceConstraint(TRef.Open TargetInterface) : Constraint { }
+internal record AnyNullableConstraint : Constraint
+{
+    public override void Resolve(Type? target)
+    {
+        throw new NotImplementedException("todo");
+    }
+}
